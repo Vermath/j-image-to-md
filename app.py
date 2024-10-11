@@ -67,26 +67,52 @@ def generate_single_page_website(recipes, website_name):
     try:
         # Prepare the refined prompt for code generation
         prompt = f"""
-Create a complete, responsive single-page HTML website named "{website_name}". The website should display the following recipes in a user-friendly format with proper navigation. For each recipe, include a blog-style post that provides a detailed description, background information, personal anecdotes, and any tips related to the recipe. Ensure that these blog posts are engaging, well-structured, and informative.
+Create a complete, responsive single-page HTML website named "{website_name}". The website should display the following recipes in a user-friendly format with proper navigation.
+
+For each recipe, create a comprehensive blog post that includes:
+
+- **An engaging introduction**: Hook the reader with a personal anecdote, the history of the recipe, or why it's special.
+
+- **A detailed ingredient list**: Clearly list all ingredients with measurements.
+
+- **Step-by-step instructions**: Provide clear and concise cooking steps, using numbered lists.
+
+- **Helpful tips and variations**: Offer cooking tips, substitution suggestions, and variations.
+
+- **Nutritional information**: Include approximate nutritional values if possible.
+
+- **A captivating conclusion**: Summarize the recipe experience or encourage readers to try it out.
+
+Ensure that the blog posts are written in a friendly, conversational tone, aiming for about 800-1000 words each. Use high-quality, descriptive language to make the recipes come alive.
 
 Include embedded CSS styles that support both light and dark modes based on the user's system preferences, ensuring high contrast between text and background for readability. Use appropriate HTML tags to format headings, paragraphs, lists, and other elements to ensure the recipes are well-presented and easy to read.
 
 Recipes:
 {json.dumps(recipes, indent=2)}
 
-Requirements:
-- A navigation bar with the website name.
-- A main section listing all recipes with links that navigate to each recipe within the same page using anchor tags.
-- Each recipe should display its title, content, and an accompanying blog-style post. The blog post should be thorough and detailed. It should be a full length blog post including an intro, instructions, tips, tricks, and more.
-- Responsive design for mobile and desktop.
-- Dark mode support using CSS media queries, ensuring high contrast in both light and dark modes.
-- Embedded CSS and JavaScript within the HTML file (no separate files).
-- Implement smooth scrolling when navigating to different sections.
-- Ensure that anchor links function correctly within an iframe without redirecting the main page.
-- Use clear and consistent formatting for all recipes and blog posts.
-- No explanations or additional text; only provide the complete HTML code.
-"""
+**Requirements:**
 
+- **Navigation Bar**: A navigation bar with the website name and links to each recipe section.
+
+- **Main Section**: A main section listing all recipes with links that navigate to each recipe within the same page using anchor tags.
+
+- **Responsive Design**: Ensure the website is responsive for mobile and desktop devices.
+
+- **Dark Mode Support**: Use CSS media queries to support light and dark modes, ensuring high contrast for readability.
+
+- **Embedded CSS and JavaScript**: Include all CSS and JavaScript within the HTML file (no external files).
+
+- **Smooth Scrolling**: Implement smooth scrolling when navigating to different sections.
+
+- **Iframe Compatibility**: Ensure that anchor links function correctly within an iframe without redirecting the main page.
+
+- **Consistent Formatting**: Use clear and consistent formatting for all recipes and blog posts.
+
+- **No Explanations**: Do not include any explanations or additional text; only provide the complete HTML code.
+
+- **Valid HTML**: Ensure the HTML code is valid and well-formatted.
+
+"""
         # Make the API call to o1-mini without system prompts
         response = client.chat.completions.create(
             model="o1-mini",
@@ -222,13 +248,11 @@ def main():
                     st.session_state.website_code = website_code
                     st.success("🎉 Website generated successfully!")
 
-                    # Render the website within the app in its own independent frame using srcdoc
+                    # Render the website directly within the app using components.html
                     st.markdown("## 🌐 Your Generated Website")
                     components.html(
-                        f"""
-                        <iframe srcdoc='{website_code}' width="100%" height="2000px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
-                        """,
-                        height=2000,  # Increased height for better desktop viewing
+                        website_code,
+                        height=1500,  # Adjust height as needed
                         scrolling=True
                     )
                     
@@ -294,13 +318,11 @@ def main():
                     st.session_state.website_code = website_code
                     st.success("🎉 Website regenerated successfully!")
 
-                    # Render the website within the app in its own independent frame using srcdoc
+                    # Render the website directly within the app using components.html
                     st.markdown("## 🌐 Your Generated Website")
                     components.html(
-                        f"""
-                        <iframe srcdoc='{website_code}' width="100%" height="2000px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
-                        """,
-                        height=2000,  # Increased height for better desktop viewing
+                        website_code,
+                        height=1500,  # Adjust height as needed
                         scrolling=True
                     )
                     
@@ -321,10 +343,8 @@ def main():
         if st.session_state.website_code:
             st.markdown("## 🌐 Your Generated Website")
             components.html(
-                f"""
-                <iframe srcdoc='{st.session_state.website_code}' width="100%" height="2000px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
-                """,
-                height=2000,  # Increased height for better desktop viewing
+                st.session_state.website_code,
+                height=1500,  # Adjust height as needed
                 scrolling=True
             )
         else:
