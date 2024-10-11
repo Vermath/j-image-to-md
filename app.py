@@ -53,9 +53,9 @@ def transcribe_image(image_data, image_name):
         st.error(f"❌ Error transcribing {image_name}: {e}")
         return {"Image Name": image_name, "Transcribed Text": ""}
 
-def generate_website_code(recipes, website_name):
+def generate_single_page_website(recipes, website_name):
     """
-    Generate a complete multi-page HTML website with embedded CSS and JavaScript based on the transcribed recipes using OpenAI's o1-mini.
+    Generate a complete single-page HTML website with embedded CSS and JavaScript based on the transcribed recipes using OpenAI's o1-mini.
 
     Args:
         recipes (list of dict): Each dict contains 'title' and 'content'.
@@ -67,18 +67,19 @@ def generate_website_code(recipes, website_name):
     try:
         # Prepare the prompt for code generation
         prompt = f"""
-Create a complete, responsive multi-page HTML website named "{website_name}". The website should display the following recipes in a user-friendly format with proper navigation. Include embedded CSS styles that support both light and dark modes based on the user's system preferences.
+Create a complete, responsive single-page HTML website named "{website_name}". The website should display the following recipes in a user-friendly format with proper navigation. Include embedded CSS styles that support both light and dark modes based on the user's system preferences.
 
 Recipes:
 {json.dumps(recipes, indent=2)}
 
 Requirements:
 - A navigation bar with the website name.
-- A main index page listing all recipes with links to their respective pages.
-- Each recipe should have its own page displaying its title and content.
+- A main section listing all recipes with links that navigate to each recipe within the same page using anchor tags.
+- Each recipe should display its title and content.
 - Responsive design for mobile and desktop.
 - Dark mode support using CSS media queries.
-- Embedded CSS and JavaScript within the HTML files (no separate files).
+- Embedded CSS and JavaScript within the HTML file (no separate files).
+- Smooth scrolling when navigating to different sections.
 - No explanations or additional text; only provide the complete HTML code.
 """
 
@@ -160,7 +161,7 @@ def main():
                 for future in as_completed(future_to_image):
                     res = future.result()
                     results.append(res)
-        
+
         # Create DataFrame from results
         df = pd.DataFrame(results)
         st.dataframe(df)
@@ -187,9 +188,9 @@ def main():
                 "title": title,
                 "content": content
             })
-        
+
         with st.spinner("💻 Generating your website..."):
-            website_code = generate_website_code(recipes, website_name)
+            website_code = generate_single_page_website(recipes, website_name)
             if website_code:
                 st.success("🎉 Website generated successfully!")
 
