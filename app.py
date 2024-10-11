@@ -65,9 +65,9 @@ def generate_single_page_website(recipes, website_name):
         str: The complete HTML code for the website.
     """
     try:
-        # Prepare the prompt for code generation
+        # Prepare the refined prompt for code generation
         prompt = f"""
-Create a complete, responsive single-page HTML website named "{website_name}". The website should display the following recipes in a user-friendly format with proper navigation. Include embedded CSS styles that support both light and dark modes based on the user's system preferences.
+Create a complete, responsive single-page HTML website named "{website_name}". The website should display the following recipes in a user-friendly format with proper navigation. Include embedded CSS styles that support both light and dark modes based on the user's system preferences, ensuring high contrast between text and background for readability.
 
 Recipes:
 {json.dumps(recipes, indent=2)}
@@ -77,9 +77,10 @@ Requirements:
 - A main section listing all recipes with links that navigate to each recipe within the same page using anchor tags.
 - Each recipe should display its title and content.
 - Responsive design for mobile and desktop.
-- Dark mode support using CSS media queries.
+- Dark mode support using CSS media queries, ensuring high contrast in both light and dark modes.
 - Embedded CSS and JavaScript within the HTML file (no separate files).
-- Smooth scrolling when navigating to different sections.
+- Implement smooth scrolling when navigating to different sections.
+- Ensure that anchor links function correctly within an iframe without redirecting the main page.
 - No explanations or additional text; only provide the complete HTML code.
 """
 
@@ -93,7 +94,7 @@ Requirements:
         )
 
         website_code = response.choices[0].message.content.strip()
-        
+
         # Extract code within triple backticks if present
         code_match = re.search(r"```html\s*(.*?)\s*```", website_code, re.DOTALL | re.IGNORECASE)
         if code_match:
@@ -105,7 +106,7 @@ Requirements:
         # Validate that the code contains essential HTML structure
         if not re.search(r"<!DOCTYPE html>", code, re.IGNORECASE):
             st.warning("⚠️ The generated website code might be incomplete or improperly formatted.")
-        
+
         return code
 
     except Exception as e:
@@ -198,7 +199,7 @@ def main():
                 st.markdown("## 🌐 Your Generated Website")
                 components.html(
                     f"""
-                    <iframe srcdoc='{website_code}' width="100%" height="800px" frameborder="0" allowfullscreen></iframe>
+                    <iframe srcdoc='{website_code}' width="100%" height="800px" frameborder="0" allowfullscreen sandbox="allow-same-origin"></iframe>
                     """,
                     height=800,
                     scrolling=True
