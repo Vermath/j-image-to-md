@@ -67,9 +67,9 @@ def generate_single_page_website(recipes, website_name):
     try:
         # Prepare the refined prompt for code generation
         prompt = f"""
-Create a complete, responsive single-page HTML website named "{website_name}". The website should display the following recipes in a user-friendly format with proper navigation. For each recipe, include a blog-style post that provides a detailed description, background information, and any personal anecdotes or tips related to the recipe. Ensure that these blog posts are engaging and informative.
+Create a complete, responsive single-page HTML website named "{website_name}". The website should display the following recipes in a user-friendly format with proper navigation. For each recipe, include a blog-style post that provides a detailed description, background information, personal anecdotes, and any tips related to the recipe. Ensure that these blog posts are engaging, well-structured, and informative.
 
-Include embedded CSS styles that support both light and dark modes based on the user's system preferences, ensuring high contrast between text and background for readability.
+Include embedded CSS styles that support both light and dark modes based on the user's system preferences, ensuring high contrast between text and background for readability. Use appropriate HTML tags to format headings, paragraphs, lists, and other elements to ensure the recipes are well-presented and easy to read.
 
 Recipes:
 {json.dumps(recipes, indent=2)}
@@ -83,6 +83,7 @@ Requirements:
 - Embedded CSS and JavaScript within the HTML file (no separate files).
 - Implement smooth scrolling when navigating to different sections.
 - Ensure that anchor links function correctly within an iframe without redirecting the main page.
+- Use clear and consistent formatting for all recipes and blog posts.
 - No explanations or additional text; only provide the complete HTML code.
 """
 
@@ -114,6 +115,20 @@ Requirements:
     except Exception as e:
         st.error(f"❌ Error generating website: {e}")
         return ""
+
+def sanitize_id(title):
+    """
+    Sanitize the recipe title to create a valid HTML id attribute.
+
+    Args:
+        title (str): The recipe title.
+
+    Returns:
+        str: A sanitized string suitable for use as an HTML id.
+    """
+    sanitized = re.sub(r'[^\w\s-]', '', title.lower())
+    sanitized = re.sub(r'\s+', '-', sanitized)
+    return sanitized
 
 def main():
     st.set_page_config(page_title="📸 Handwritten Recipe Transcriber", layout="wide")
@@ -204,9 +219,11 @@ def main():
                 else:
                     title = "Untitled Recipe"
                     content = transcription
+                sanitized_id = sanitize_id(title)
                 recipes.append({
                     "title": title,
-                    "content": content
+                    "content": content,
+                    "id": sanitized_id
                 })
 
             # Debugging: Display the recipes being sent to the website generator
@@ -225,9 +242,9 @@ def main():
                     st.markdown("## 🌐 Your Generated Website")
                     components.html(
                         f"""
-                        <iframe srcdoc='{website_code}' width="100%" height="1200px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+                        <iframe srcdoc='{website_code}' width="100%" height="1500px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
                         """,
-                        height=1200,
+                        height=1500,
                         scrolling=True
                     )
                     
@@ -235,9 +252,6 @@ def main():
                     b64_code = base64.b64encode(website_code.encode()).decode()
                     href = f'<a href="data:text/html;base64,{b64_code}" download="{website_name.replace(" ", "_")}.html">📥 Download Website Code</a>'
                     st.markdown(href, unsafe_allow_html=True)
-                    
-                    # Provide a link to open the website in a new tab
-                    st.markdown(f'<a href="data:text/html;base64,{b64_code}" target="_blank">🔗 Open Website in New Tab</a>', unsafe_allow_html=True)
                 else:
                     st.error("❌ Failed to generate website code.")
 
@@ -279,9 +293,11 @@ def main():
                 else:
                     title = "Untitled Recipe"
                     content = transcription
+                sanitized_id = sanitize_id(title)
                 recipes.append({
                     "title": title,
-                    "content": content
+                    "content": content,
+                    "id": sanitized_id
                 })
 
             # Debugging: Display the recipes being sent to the website generator
@@ -300,9 +316,9 @@ def main():
                     st.markdown("## 🌐 Your Generated Website")
                     components.html(
                         f"""
-                        <iframe srcdoc='{website_code}' width="100%" height="1200px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+                        <iframe srcdoc='{website_code}' width="100%" height="1500px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
                         """,
-                        height=1200,
+                        height=1500,
                         scrolling=True
                     )
                     
@@ -310,9 +326,6 @@ def main():
                     b64_code = base64.b64encode(website_code.encode()).decode()
                     href = f'<a href="data:text/html;base64,{b64_code}" download="{website_name.replace(" ", "_")}.html">📥 Download Website Code</a>'
                     st.markdown(href, unsafe_allow_html=True)
-                    
-                    # Provide a link to open the website in a new tab
-                    st.markdown(f'<a href="data:text/html;base64,{b64_code}" target="_blank">🔗 Open Website in New Tab</a>', unsafe_allow_html=True)
                 else:
                     st.error("❌ Failed to regenerate website code.")
 
@@ -327,9 +340,9 @@ def main():
             st.markdown("## 🌐 Your Generated Website")
             components.html(
                 f"""
-                <iframe srcdoc='{st.session_state.website_code}' width="100%" height="1200px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+                <iframe srcdoc='{st.session_state.website_code}' width="100%" height="1500px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
                 """,
-                height=1200,
+                height=1500,
                 scrolling=True
             )
         else:
