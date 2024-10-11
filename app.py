@@ -3,7 +3,6 @@ import pandas as pd
 import base64
 import os
 from openai import OpenAI
-import markdown
 import streamlit.components.v1 as components
 import json
 
@@ -12,8 +11,12 @@ openai_api_key = st.secrets["OPENAI_API_KEY"]
 client = OpenAI(api_key=openai_api_key)
 
 def transcribe_image(image_data):
+    """
+    Transcribe an image of a handwritten recipe into markdown format using OpenAI's GPT-4 with vision capabilities.
+    """
     # Encode image to base64
     base64_image = base64.b64encode(image_data).decode('utf-8')
+    
     # Prepare the API request
     response = client.chat.completions.create(
         model="gpt-4o-mini",
@@ -31,33 +34,54 @@ def transcribe_image(image_data):
         ],
         max_tokens=1500,
     )
+    
     # Extract the transcribed text
     transcribed_text = response.choices[0].message.content.strip()
     return transcribed_text
 
-def generate_website_code(recipes, website_name, theme):
+def generate_website_code(recipes, website_name):
+    """
+    Generate a complete HTML, CSS, and JavaScript code for a single-page responsive website based on the transcribed recipes.
+    """
     # Prepare the prompt for code generation
     prompt = f"""
-You are a professional web developer. Create a simple, responsive HTML website named "{website_name}". The website should display the following recipes in a user-friendly format. Include appropriate CSS styles, considering dark mode if necessary. Each recipe should have its own page, with a main index page listing all recipes with links to their respective pages.
+You are a professional web developer. Create a complete, responsive single-page HTML website named "{website_name}". The website should display the following recipes in a user-friendly format with proper navigation. Include appropriate CSS styles that support both light and dark modes based on the user's system preferences.
 
 Recipes:
 {json.dumps(recipes, indent=2)}
 
-Provide the complete HTML, CSS, and JavaScript code necessary for the website.
+Requirements:
+- A navigation bar with the website name.
+- A section listing all recipes with links that navigate to each recipe within the page.
+- Each recipe should display its title and content.
+- Responsive design for mobile and desktop.
+- Dark mode support using CSS media queries.
+
+Provide the complete HTML, CSS, and JavaScript code necessary for the website without any explanations or additional text.
 """
-    
+
     # Generate the website code using OpenAI
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant that generates website code."},
+            {"role": "system", "content": "You are a helpful assistant that generates complete website code."},
             {"role": "user", "content": prompt}
         ],
         max_tokens=3000,
     )
 
     website_code = response.choices[0].message.content.strip()
-    return website_code
+
+    # Extract code within triple backticks if present
+    if website_code.startswith("```"):
+        try:
+            code = website_code.split("```")[1]
+        except IndexError:
+            code = website_code
+    else:
+        code = website_code
+
+    return code
 
 def main():
     st.set_page_config(page_title="Handwritten Recipe Transcriber", layout="wide")
@@ -116,15 +140,22 @@ def main():
                         title = title_line.replace('#', '').strip() if title_line.startswith('#') else "Untitled Recipe"
                         content = recipe["Transcribed Text"]
                         recipes.append({"title": title, "content": content})
-                    website_code = generate_website_code(recipes, website_name, theme)
+                    website_code = generate_website_code(recipes, website_name)
                     st.success("🎉 Website generated successfully!")
                 except Exception as e:
                     st.error(f"❌ Error generating website: {e}")
                     return
 
-            # Render the website within the app
+            # Render the website within the app in its own independent frame
             st.markdown("## 🌐 Your Generated Website")
-            components.html(website_code, height=800, scrolling=True)
+            # Using an iframe to embed the website code
+            components.html(
+                f"""
+                <iframe srcdoc='{website_code}' width="100%" height="800px" frameborder="0" allowfullscreen></iframe>
+                """,
+                height=800,
+                scrolling=True
+            )
 
             # Provide option to download the website code
             b64_code = base64.b64encode(website_code.encode()).decode()
