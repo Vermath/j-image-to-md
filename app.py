@@ -42,18 +42,18 @@ def transcribe_image(image_data):
 
 def generate_website_code(recipes, website_name):
     """
-    Generate a complete single-page HTML website with embedded CSS and JavaScript based on the transcribed recipes.
+    Generate a complete multi-page HTML website with embedded CSS and JavaScript based on the transcribed recipes.
     """
     # Prepare the prompt for code generation
     prompt = f"""
-You are a professional web developer. Create a complete, responsive single-page HTML website named "{website_name}". The website should display the following recipes in a user-friendly format with proper navigation. Include embedded CSS styles that support both light and dark modes based on the user's system preferences.
+You are a professional web developer. Create a complete, responsive multi-page HTML website named "{website_name}". The website should display the following recipes in a user-friendly format with proper navigation. Include embedded CSS styles that support both light and dark modes based on the user's system preferences.
 
 Recipes:
 {json.dumps(recipes, indent=2)}
 
 Requirements:
 - A navigation bar with the website name.
-- A section listing all recipes with links that navigate to each recipe within the page.
+- A section listing all recipes with links that navigate to each recipe page.
 - Each recipe should display its title and content.
 - Responsive design for mobile and desktop.
 - Dark mode support using CSS media queries.
@@ -65,7 +65,6 @@ Requirements:
     response = client.chat.completions.create(
         model="o1-mini", 
         messages=[
-            {"role": "system", "content": "You are a helpful assistant that generates complete website code."},
             {"role": "user", "content": prompt}
         ],
         max_tokens=64000,  # Adjust as needed, up to the model's limit 
