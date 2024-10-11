@@ -5,6 +5,7 @@ import os
 from openai import OpenAI
 import streamlit.components.v1 as components
 import json
+import re
 
 # Initialize OpenAI client
 openai_api_key = st.secrets["OPENAI_API_KEY"]
@@ -24,7 +25,7 @@ def transcribe_image(image_data):
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "Transcribe the following handwritten recipe into markdown format."},
+                    {"type": "text", "text": "Transcribe the following handwritten recipe into markdown format without any commentary."},
                     {
                         "type": "image_url",
                         "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"},
@@ -32,7 +33,7 @@ def transcribe_image(image_data):
                 ],
             }
         ],
-        max_tokens=1500,
+        max_tokens=16000,  # Adjust as needed, up to the model's limit 
     )
     
     # Extract the transcribed text
@@ -41,11 +42,11 @@ def transcribe_image(image_data):
 
 def generate_website_code(recipes, website_name):
     """
-    Generate a complete HTML, CSS, and JavaScript code for a single-page responsive website based on the transcribed recipes.
+    Generate a complete single-page HTML website with embedded CSS and JavaScript based on the transcribed recipes.
     """
     # Prepare the prompt for code generation
     prompt = f"""
-You are a professional web developer. Create a complete, responsive single-page HTML website named "{website_name}". The website should display the following recipes in a user-friendly format with proper navigation. Include appropriate CSS styles that support both light and dark modes based on the user's system preferences.
+You are a professional web developer. Create a complete, responsive single-page HTML website named "{website_name}". The website should display the following recipes in a user-friendly format with proper navigation. Include embedded CSS styles that support both light and dark modes based on the user's system preferences.
 
 Recipes:
 {json.dumps(recipes, indent=2)}
@@ -56,29 +57,28 @@ Requirements:
 - Each recipe should display its title and content.
 - Responsive design for mobile and desktop.
 - Dark mode support using CSS media queries.
-
-Provide the complete HTML, CSS, and JavaScript code necessary for the website without any explanations or additional text.
+- Embedded CSS and JavaScript within the HTML file (no separate files).
+- No explanations or additional text; only provide the complete HTML code.
 """
 
     # Generate the website code using OpenAI
     response = client.chat.completions.create(
-        model="gpt-4",
+        model="o1-mini", 
         messages=[
             {"role": "system", "content": "You are a helpful assistant that generates complete website code."},
             {"role": "user", "content": prompt}
         ],
-        max_tokens=3000,
+        max_tokens=64000,  # Adjust as needed, up to the model's limit 
     )
 
     website_code = response.choices[0].message.content.strip()
-
+    
     # Extract code within triple backticks if present
-    if website_code.startswith("```"):
-        try:
-            code = website_code.split("```")[1]
-        except IndexError:
-            code = website_code
+    code_match = re.search(r"```html\s*(.*?)\s*```", website_code, re.DOTALL | re.IGNORECASE)
+    if code_match:
+        code = code_match.group(1).strip()
     else:
+        # If no backticks, assume the entire response is code
         code = website_code
 
     return code
