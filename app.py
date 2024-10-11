@@ -77,7 +77,7 @@ Recipes:
 Requirements:
 - A navigation bar with the website name.
 - A main section listing all recipes with links that navigate to each recipe within the same page using anchor tags.
-- Each recipe should display its title, content, and an accompanying blog-style post.
+- Each recipe should display its title, content, and an accompanying blog-style post. The blog post should be thorough and detailed. It should be a full length blog post including an intro, instructions, tips, tricks, and more.
 - Responsive design for mobile and desktop.
 - Dark mode support using CSS media queries, ensuring high contrast in both light and dark modes.
 - Embedded CSS and JavaScript within the HTML file (no separate files).
@@ -226,9 +226,9 @@ def main():
                     st.markdown("## 🌐 Your Generated Website")
                     components.html(
                         f"""
-                        <iframe srcdoc='{website_code}' width="100%" height="1200px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+                        <iframe srcdoc='{website_code}' width="100%" height="2000px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
                         """,
-                        height=1200,
+                        height=2000,  # Increased height for better desktop viewing
                         scrolling=True
                     )
                     
@@ -298,9 +298,9 @@ def main():
                     st.markdown("## 🌐 Your Generated Website")
                     components.html(
                         f"""
-                        <iframe srcdoc='{website_code}' width="100%" height="1200px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+                        <iframe srcdoc='{website_code}' width="100%" height="2000px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
                         """,
-                        height=1200,
+                        height=2000,  # Increased height for better desktop viewing
                         scrolling=True
                     )
                     
@@ -322,9 +322,9 @@ def main():
             st.markdown("## 🌐 Your Generated Website")
             components.html(
                 f"""
-                <iframe srcdoc='{st.session_state.website_code}' width="100%" height="1200px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+                <iframe srcdoc='{st.session_state.website_code}' width="100%" height="2000px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
                 """,
-                height=1200,
+                height=2000,  # Increased height for better desktop viewing
                 scrolling=True
             )
         else:
