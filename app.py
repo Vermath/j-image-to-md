@@ -4,7 +4,8 @@ import base64
 import os
 from openai import OpenAI
 import markdown
-from pathlib import Path
+import streamlit.components.v1 as components
+import json
 
 # Initialize OpenAI client
 openai_api_key = st.secrets["OPENAI_API_KEY"]
@@ -34,38 +35,49 @@ def transcribe_image(image_data):
     transcribed_text = response.choices[0].message.content.strip()
     return transcribed_text
 
-def generate_html(recipes):
-    html_content = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>My Recipe Book</title>
-        <style>
-            body {font-family: Arial, sans-serif; margin: 20px;}
-            .recipe {margin-bottom: 50px;}
-            h1 {text-align: center;}
-        </style>
-    </head>
-    <body>
-        <h1>My Recipe Book</h1>
-    """
-    for recipe in recipes:
-        # Convert markdown to HTML
-        html_recipe = markdown.markdown(recipe["Transcribed Text"])
-        html_content += f'<div class="recipe">{html_recipe}</div>\n'
-    html_content += """
-    </body>
-    </html>
-    """
-    return html_content
+def generate_website_code(recipes, website_name, theme):
+    # Prepare the prompt for code generation
+    prompt = f"""
+You are a web developer. Create a simple, responsive HTML website named "{website_name}". The website should display the following recipes in a user-friendly format. Include appropriate CSS styles (consider dark mode if necessary). Each recipe should be on its own page, with a main index page listing all recipes with links to their pages.
+
+Recipes:
+{json.dumps(recipes)}
+
+Provide the complete HTML, CSS, and JavaScript code necessary for the website.
+"""
+
+    # Generate the website code using OpenAI
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that generates website code."},
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=3000,
+    )
+
+    website_code = response.choices[0].message.content.strip()
+    return website_code
 
 def main():
     st.title("Handwritten Recipe Transcriber")
-    st.write("Upload images of handwritten recipes to get beautifully rendered markdown and view your recipe website.")
+    st.write("Upload images of handwritten recipes to generate a concept website based on them.")
+
+    # Detect if dark mode is being used
+    theme = st.get_option("theme.base")
+    if theme == "dark":
+        text_color = "white"
+        bg_color = "#0e1117"
+    else:
+        text_color = "black"
+        bg_color = "white"
+
+    # Ask for website name
+    website_name = st.text_input("Enter a name for your website:", "My Recipe Book")
 
     uploaded_files = st.file_uploader("Choose image files", accept_multiple_files=True, type=["png", "jpg", "jpeg"])
 
-    if uploaded_files:
+    if uploaded_files and website_name:
         results = []
         for uploaded_file in uploaded_files:
             image_name = uploaded_file.name
@@ -79,26 +91,48 @@ def main():
                     st.error(f"Error transcribing {image_name}: {e}")
 
         if results:
-            df = pd.DataFrame(results)
             st.write("## Transcribed Recipes")
+            df = pd.DataFrame(results)
             st.dataframe(df)
 
-            # Generate and display the website
-            st.write("## Recipe Website")
-            html_content = generate_html(results)
-            # Render the HTML content in an iframe
-            st.components.v1.html(html_content, height=800, scrolling=True)
+            # Generate the website code
+            with st.spinner("Generating your website..."):
+                try:
+                    recipes = []
+                    for recipe in results:
+                        title = recipe["Transcribed Text"].split('\n')[0].replace('#', '').strip()
+                        content = recipe["Transcribed Text"]
+                        recipes.append({"title": title, "content": content})
+                    website_code = generate_website_code(recipes, website_name, theme)
+                    st.success("Website generated successfully!")
+                except Exception as e:
+                    st.error(f"Error generating website: {e}")
+                    return
 
-            # Provide option to download the HTML file
-            b64_html = base64.b64encode(html_content.encode()).decode()
-            href = f'<a href="data:text/html;base64,{b64_html}" download="recipe_book.html">Download Recipe Website as HTML</a>'
+            # Render the website within the app
+            st.write("## Your Generated Website")
+            components.v1.html(website_code, height=800, scrolling=True)
+
+            # Provide option to download the website code
+            b64_code = base64.b64encode(website_code.encode()).decode()
+            href = f'<a href="data:text/html;base64,{b64_code}" download="{website_name.replace(" ", "_")}.html">Download Website Code</a>'
             st.markdown(href, unsafe_allow_html=True)
 
-            # Provide CSV download
-            csv = df.to_csv(index=False)
-            b64_csv = base64.b64encode(csv.encode()).decode()
-            href_csv = f'<a href="data:file/csv;base64,{b64_csv}" download="transcriptions.csv">Download CSV File</a>'
-            st.markdown(href_csv, unsafe_allow_html=True)
+    # Adjust styles for dark mode
+    st.markdown(f"""
+    <style>
+    body {{
+        background-color: {bg_color};
+        color: {text_color};
+    }}
+    .stApp {{
+        background-color: {bg_color};
+    }}
+    .css-1d391kg {{
+        color: {text_color};
+    }}
+    </style>
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
