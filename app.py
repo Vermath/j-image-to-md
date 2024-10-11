@@ -116,20 +116,6 @@ Requirements:
         st.error(f"❌ Error generating website: {e}")
         return ""
 
-def sanitize_id(title):
-    """
-    Sanitize the recipe title to create a valid HTML id attribute.
-
-    Args:
-        title (str): The recipe title.
-
-    Returns:
-        str: A sanitized string suitable for use as an HTML id.
-    """
-    sanitized = re.sub(r'[^\w\s-]', '', title.lower())
-    sanitized = re.sub(r'\s+', '-', sanitized)
-    return sanitized
-
 def main():
     st.set_page_config(page_title="📸 Handwritten Recipe Transcriber", layout="wide")
     st.title("📸 Handwritten Recipe Transcriber")
@@ -219,11 +205,9 @@ def main():
                 else:
                     title = "Untitled Recipe"
                     content = transcription
-                sanitized_id = sanitize_id(title)
                 recipes.append({
                     "title": title,
-                    "content": content,
-                    "id": sanitized_id
+                    "content": content
                 })
 
             # Debugging: Display the recipes being sent to the website generator
@@ -242,9 +226,9 @@ def main():
                     st.markdown("## 🌐 Your Generated Website")
                     components.html(
                         f"""
-                        <iframe srcdoc='{website_code}' width="100%" height="1500px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+                        <iframe srcdoc='{website_code}' width="100%" height="1200px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
                         """,
-                        height=1500,
+                        height=1200,
                         scrolling=True
                     )
                     
@@ -293,11 +277,9 @@ def main():
                 else:
                     title = "Untitled Recipe"
                     content = transcription
-                sanitized_id = sanitize_id(title)
                 recipes.append({
                     "title": title,
-                    "content": content,
-                    "id": sanitized_id
+                    "content": content
                 })
 
             # Debugging: Display the recipes being sent to the website generator
@@ -316,9 +298,9 @@ def main():
                     st.markdown("## 🌐 Your Generated Website")
                     components.html(
                         f"""
-                        <iframe srcdoc='{website_code}' width="100%" height="1500px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+                        <iframe srcdoc='{website_code}' width="100%" height="1200px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
                         """,
-                        height=1500,
+                        height=1200,
                         scrolling=True
                     )
                     
@@ -340,13 +322,14 @@ def main():
             st.markdown("## 🌐 Your Generated Website")
             components.html(
                 f"""
-                <iframe srcdoc='{st.session_state.website_code}' width="100%" height="1500px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+                <iframe srcdoc='{st.session_state.website_code}' width="100%" height="1200px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
                 """,
-                height=1500,
+                height=1200,
                 scrolling=True
             )
         else:
             st.info("📌 Please upload images of handwritten recipes, enter a website name, and click 'Submit' to generate your website.")
 
+# Run the app
 if __name__ == "__main__":
     main()
