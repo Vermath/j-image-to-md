@@ -118,6 +118,12 @@ def main():
     st.title("📸 Handwritten Recipe Transcriber")
     st.write("Upload images of handwritten recipes to generate a concept website based on them.")
 
+    # Initialize session state variables
+    if 'transcriptions' not in st.session_state:
+        st.session_state.transcriptions = []
+    if 'website_code' not in st.session_state:
+        st.session_state.website_code = ""
+
     # Detect if dark mode is being used
     theme = st.get_option("theme.base")
     if theme == "dark":
@@ -142,82 +148,164 @@ def main():
 
     uploaded_files = st.file_uploader("📂 Choose image files", accept_multiple_files=True, type=["png", "jpg", "jpeg"])
 
-    if uploaded_files and website_name:
-        images = []
-        for uploaded_file in uploaded_files:
-            images.append({
-                "image_name": uploaded_file.name,
-                "image_data": uploaded_file.read()
-            })
-        
-        st.markdown("### 📄 Transcribed Recipes")
-        df = pd.DataFrame(columns=["Image Name", "Transcribed Text"])
+    # "Submit" Button for Processing Images
+    submit_button = st.button("Submit")
 
-        with st.spinner("📝 Transcribing uploaded images..."):
-            # Use ThreadPoolExecutor to parallelize transcription
-            with ThreadPoolExecutor() as executor:
-                # Submit all transcription tasks
-                future_to_image = {executor.submit(transcribe_image, img['image_data'], img['image_name']): img for img in images}
-                results = []
-                for future in as_completed(future_to_image):
-                    res = future.result()
-                    results.append(res)
+    if submit_button:
+        if uploaded_files and website_name:
+            images = []
+            for uploaded_file in uploaded_files:
+                images.append({
+                    "image_name": uploaded_file.name,
+                    "image_data": uploaded_file.read()
+                })
+            
+            st.markdown("### 📄 Transcribed Recipes")
+            results = []
 
-        # Create DataFrame from results
-        df = pd.DataFrame(results)
-        st.dataframe(df)
+            with st.spinner("📝 Transcribing uploaded images..."):
+                # Use ThreadPoolExecutor to parallelize transcription
+                with ThreadPoolExecutor() as executor:
+                    # Submit all transcription tasks
+                    future_to_image = {executor.submit(transcribe_image, img['image_data'], img['image_name']): img for img in images}
+                    for future in as_completed(future_to_image):
+                        res = future.result()
+                        results.append(res)
+            
+            # Update session state with transcriptions
+            st.session_state.transcriptions = results
 
-        # Provide option to download the CSV file
-        csv = df.to_csv(index=False)
-        b64_csv = base64.b64encode(csv.encode()).decode()  # B64 encode
-        href_csv = f'<a href="data:file/csv;base64,{b64_csv}" download="transcriptions.csv">📥 Download CSV File</a>'
-        st.markdown(href_csv, unsafe_allow_html=True)
+            # Create DataFrame from results
+            df = pd.DataFrame(results)
+            st.dataframe(df)
 
-        # Prepare recipes for website generation
-        recipes = []
-        for index, row in df.iterrows():
-            transcription = row["Transcribed Text"]
-            # Extract title from markdown (assuming the first line is the title)
-            lines = transcription.split('\n')
-            if lines and lines[0].startswith('#'):
-                title = lines[0].replace('#', '').strip()
-                content = '\n'.join(lines[1:]).strip()
-            else:
-                title = "Untitled Recipe"
-                content = transcription
-            recipes.append({
-                "title": title,
-                "content": content
-            })
+            # Provide option to download the CSV file
+            csv = df.to_csv(index=False)
+            b64_csv = base64.b64encode(csv.encode()).decode()  # B64 encode
+            href_csv = f'<a href="data:file/csv;base64,{b64_csv}" download="transcriptions.csv">📥 Download CSV File</a>'
+            st.markdown(href_csv, unsafe_allow_html=True)
 
-        with st.spinner("💻 Generating your website..."):
-            website_code = generate_single_page_website(recipes, website_name)
-            if website_code:
-                st.success("🎉 Website generated successfully!")
+            # Prepare recipes for website generation
+            recipes = []
+            for index, row in df.iterrows():
+                transcription = row["Transcribed Text"]
+                # Extract title from markdown (assuming the first line is the title)
+                lines = transcription.split('\n')
+                if lines and lines[0].startswith('#'):
+                    title = lines[0].replace('#', '').strip()
+                    content = '\n'.join(lines[1:]).strip()
+                else:
+                    title = "Untitled Recipe"
+                    content = transcription
+                recipes.append({
+                    "title": title,
+                    "content": content
+                })
 
-                # Render the website within the app in its own independent frame using srcdoc
-                st.markdown("## 🌐 Your Generated Website")
-                components.html(
-                    f"""
-                    <iframe srcdoc='{website_code}' width="100%" height="800px" frameborder="0" allowfullscreen sandbox="allow-same-origin"></iframe>
-                    """,
-                    height=800,
-                    scrolling=True
-                )
-                
-                # Provide option to download the website code
-                b64_code = base64.b64encode(website_code.encode()).decode()
-                href = f'<a href="data:text/html;base64,{b64_code}" download="{website_name.replace(" ", "_")}.html">📥 Download Website Code</a>'
-                st.markdown(href, unsafe_allow_html=True)
-            else:
-                st.error("❌ Failed to generate website code.")
+            # Generate the website
+            with st.spinner("💻 Generating your website..."):
+                website_code = generate_single_page_website(recipes, website_name)
+                if website_code:
+                    st.session_state.website_code = website_code
+                    st.success("🎉 Website generated successfully!")
 
-    elif uploaded_files and not website_name:
-        st.warning("⚠️ Please enter a name for your website.")
-    
+                    # Render the website within the app in its own independent frame using srcdoc
+                    st.markdown("## 🌐 Your Generated Website")
+                    components.html(
+                        f"""
+                        <iframe srcdoc='{website_code}' width="100%" height="800px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+                        """,
+                        height=800,
+                        scrolling=True
+                    )
+                    
+                    # Provide option to download the website code
+                    b64_code = base64.b64encode(website_code.encode()).decode()
+                    href = f'<a href="data:text/html;base64,{b64_code}" download="{website_name.replace(" ", "_")}.html">📥 Download Website Code</a>'
+                    st.markdown(href, unsafe_allow_html=True)
+                else:
+                    st.error("❌ Failed to generate website code.")
+
+        elif uploaded_files and not website_name:
+            st.warning("⚠️ Please enter a name for your website.")
+
+        else:
+            st.warning("⚠️ Please upload images of handwritten recipes and enter a website name.")
+
+    # "Regenerate Website" Button
+    regenerate_button = st.button("🔄 Regenerate Website")
+
+    if regenerate_button:
+        if st.session_state.transcriptions and website_name:
+            st.markdown("### 📄 Transcribed Recipes")
+            df = pd.DataFrame(st.session_state.transcriptions)
+            st.dataframe(df)
+
+            # Provide option to download the CSV file
+            csv = df.to_csv(index=False)
+            b64_csv = base64.b64encode(csv.encode()).decode()  # B64 encode
+            href_csv = f'<a href="data:file/csv;base64,{b64_csv}" download="transcriptions.csv">📥 Download CSV File</a>'
+            st.markdown(href_csv, unsafe_allow_html=True)
+
+            # Prepare recipes for website generation
+            recipes = []
+            for index, row in df.iterrows():
+                transcription = row["Transcribed Text"]
+                # Extract title from markdown (assuming the first line is the title)
+                lines = transcription.split('\n')
+                if lines and lines[0].startswith('#'):
+                    title = lines[0].replace('#', '').strip()
+                    content = '\n'.join(lines[1:]).strip()
+                else:
+                    title = "Untitled Recipe"
+                    content = transcription
+                recipes.append({
+                    "title": title,
+                    "content": content
+                })
+
+            # Generate the website
+            with st.spinner("💻 Regenerating your website..."):
+                website_code = generate_single_page_website(recipes, website_name)
+                if website_code:
+                    st.session_state.website_code = website_code
+                    st.success("🎉 Website regenerated successfully!")
+
+                    # Render the website within the app in its own independent frame using srcdoc
+                    st.markdown("## 🌐 Your Generated Website")
+                    components.html(
+                        f"""
+                        <iframe srcdoc='{website_code}' width="100%" height="800px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+                        """,
+                        height=800,
+                        scrolling=True
+                    )
+                    
+                    # Provide option to download the website code
+                    b64_code = base64.b64encode(website_code.encode()).decode()
+                    href = f'<a href="data:text/html;base64,{b64_code}" download="{website_name.replace(" ", "_")}.html">📥 Download Website Code</a>'
+                    st.markdown(href, unsafe_allow_html=True)
+                else:
+                    st.error("❌ Failed to regenerate website code.")
+
+        elif not st.session_state.transcriptions:
+            st.warning("⚠️ No transcriptions available. Please submit images first.")
+
+        elif not website_name:
+            st.warning("⚠️ Please enter a name for your website.")
+
     else:
-        st.info("📌 Please upload images of handwritten recipes and enter a website name to get started.")
+        if st.session_state.website_code:
+            st.markdown("## 🌐 Your Generated Website")
+            components.html(
+                f"""
+                <iframe srcdoc='{st.session_state.website_code}' width="100%" height="800px" frameborder="0" allowfullscreen sandbox="allow-same-origin allow-scripts"></iframe>
+                """,
+                height=800,
+                scrolling=True
+            )
+        else:
+            st.info("📌 Please upload images of handwritten recipes, enter a website name, and click 'Submit' to generate your website.")
 
-# Run the app
 if __name__ == "__main__":
     main()
