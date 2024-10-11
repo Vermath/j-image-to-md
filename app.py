@@ -6,7 +6,7 @@ from openai import OpenAI
 import streamlit.components.v1 as components
 import json
 import re
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Initialize OpenAI client
 openai_api_key = st.secrets["OPENAI_API_KEY"]
@@ -154,12 +154,15 @@ def main():
         with st.spinner("📝 Transcribing uploaded images..."):
             # Use ThreadPoolExecutor to parallelize transcription
             with ThreadPoolExecutor() as executor:
-                results = list(executor.map(lambda img: transcribe_image(img['image_data'], img['image_name']), images))
-            
-            # Populate the DataFrame
-            for res in results:
-                df = df.append(res, ignore_index=True)
+                # Submit all transcription tasks
+                future_to_image = {executor.submit(transcribe_image, img['image_data'], img['image_name']): img for img in images}
+                results = []
+                for future in as_completed(future_to_image):
+                    res = future.result()
+                    results.append(res)
         
+        # Create DataFrame from results
+        df = pd.DataFrame(results)
         st.dataframe(df)
 
         # Provide option to download the CSV file
